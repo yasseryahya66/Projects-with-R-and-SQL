@@ -1,7 +1,7 @@
 ---
-title: 'Data Structures in R: Guided Project Solutions'
-author: "Dataquest"
-date: "6/6/2020"
+title: 'Dataquest guided project on data structure: countries with the highest number of positive cases'
+author: "Yassir, but the suggested solution from dataquest by johnaoga"
+date: "01/08/2022"
 output: html_document
 ---
 
@@ -16,19 +16,20 @@ covid_df <- read_csv("covid19.csv")
 ```
 
 ```{r}
-# Displaing the dimension of the data: 
+# Showing the dimension of the data: 
 dim(covid_df)
 
 # Storing the column names in a variable
 vector_cols <- colnames(covid_df)
 
-# Displaing the variable vector_cols
+# Showing the variable vector_cols
 vector_cols
 
-# Showing the first few rows of the dataset
+# Displaying the first few rows of the dataset
 head(covid_df)
 
 # Showing a global view of the dataset.
+# we could use many functions to provide an overview of the data
 library(tibble)
 
 glimpse(covid_df)
@@ -48,6 +49,7 @@ The dataset contains `14` columns and `10,903` rows. This database provides info
 library(dplyr)
 
 # Filter the "All States" Province states and remove the `Province_State` column
+# this pipe operator  %>%  forwards the result of a function to the next one.
 covid_df_all_states <- covid_df %>% 
   filter(Province_State == "All States") %>% 
   select(-Province_State)
@@ -190,3 +192,5 @@ covid_analysis_list <- list(question, answer, data_structure_list)
 
 covid_analysis_list[[2]]
 ```
+# The top three countries with positive cases are the United Kingdom 0.11,  The United States 0.10, and Turkey 0.08
+                              
