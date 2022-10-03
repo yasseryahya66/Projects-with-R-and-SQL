@@ -1,6 +1,6 @@
 ---
 title: 'Dataquest guided project on data structure: countries with the highest number of positive cases'
-author: "Yassir, but the suggested solution was from dataquest by johnaoga"
+author: "Yassir, my solution is similar with the suggested solution from dataquest by johnaoga"
 date: "01/08/2022"
 output: html_document
 ---
