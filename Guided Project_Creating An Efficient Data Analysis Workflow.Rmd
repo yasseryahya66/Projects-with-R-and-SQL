@@ -1,0 +1,120 @@
+---
+title: 'Guided Project: Creating An Efficient Data Analysis Workflow'
+author: "Yassir Al Masoudi"
+date: "2022-10-08"
+output: html_document
+---
+
+# The project's objective is to find the most profitable book.
+
+# Loading some libraries 
+```{r}
+library(tidyverse)
+library(dplyr)  
+library(readr) # reading the dataset
+```
+# Exploring and understanding how big the dataset is!
+```{r}
+#loading the dataset from the book_reviews file csv
+book.df <- read.csv("book_reviews.csv") 
+
+View(book.df) # Exploring the dataset
+
+head(book.df) # displaying the first 6 rows of the dataset
+
+tail(book.df) # displaying the last 6 rows of the dataset
+
+dim(book.df) # displaying the dimensions of the dataset (2000 rows, 6 columns)
+
+colnames(book.df) # displaying column names (book, review, state, price). 
+
+typeof(book.df$book) # The book column has a character data type
+typeof(book.df[["book"]]) # Another way to check the data type in a column
+typeof(book.df$review) # The review column has a character data type
+typeof(book.df$state) # The state column has a character data type
+typeof(book.df$price) # The price column has a double data type
+
+# using for loop to find out the columns data type
+for (i in colnames(book.df)) {
+  print(typeof(book.df[[i]]))
+}
+
+unique(book.df$book) # Return the book column data without duplicates. The book column has the following data: ("R Made Easy","R For Dummies","Secrets Of R For Advanced students","Top 10 Mistakes R Beginners Make", "Fundamentals of R For Beginners"). The book column has not missing values.
+unique(book.df$review) # Return the review column data, indicating reviewers' scores. The review column has the following data: ("Excellent","Fair","Poor","Great", NA,"Good"). The review column has missing values.
+unique(book.df$state) # Return the state column where the book was purchased. The state column has the following data: ("TX", "NY","FL", "Texas","California"). The state column has no missing values.
+unique(book.df$price) # Return the price column, showing the prices of the book. The price column has the following data: (19.99 15.99 50.00 29.99 39.99). The price column has no missing values.
+
+# Using for loop to check unique column values
+for (c in colnames(book.df)) {
+  print("Unique column values:")
+  print(c)
+  print(unique(book.df[[c]]))
+  print("__________________")
+}
+
+glimpse(book.df) # showing an overview of the dataset
+```
+# Cleaning the dataset by finding and removing missing data
+```{r}
+# The review column has missing values. So, we need to remove them by using the filter, !, & is.na functions.
+filtered_review <- book.df %>%
+  filter(!(is.na(review)))
+glimpse(filtered_review) # displaying the new dataset after removing the missing data
+dim(filtered_review) # checking the new dimensions of the dataset after removing the missing data. The new dataset has 1794 rows and 4 columns
+dim(book.df) # recalling the old dataset has 2000 rows and 4 columns
+Removed_data_size <- 2000-1794 # 206 is the size of the removed data
+Percentage_removed_data_size <- 206/2000 # .103 or 10% reviews were removed from the original data. The 10% won't affect the findings of any calculations we end up doing!
+filtered_review #current dataset
+```
+# Cleaning the dataset by fixing the labelling of the state column
+```{r}
+unique(filtered_review$state) #let's check the inconsistency of the state column values
+# let's impute a column "state" to have consistent labels of states.
+imputation_filtered_review <- filtered_review %>%
+  mutate(state = case_when(
+    state == "TX" ~ "Texas",
+    state == "NY" ~ "New York",
+    state == "FL" ~ "Florida",
+    state == "CA" ~ "California",
+    TRUE ~ state)
+  )
+unique(imputation_filtered_review$state) # The labels of the state column values are now consistent after imputing a new state column
+imputation_filtered_review # current dataset
+```
+# Converting the review column values "character" into scoring values
+```{r}
+#let's add another column "review_num" to include scoring values of integer types
+scoring <- imputation_filtered_review %>%
+  mutate(review_num = case_when(
+    review == "Poor" ~ 1,
+    review == "Fair" ~ 2,
+    review == "Good" ~ 3,
+    review == "Great" ~ 4,
+    review == "Excellent" ~ 5)
+  )  %>% select(book, -review, review_num, price)
+
+head(scoring) # The review_num column has scoring integer values
+
+#Creating a new column in the dataset called is_high_review, denoting whether or not the review has a high score or not 
+review_scoring <- scoring %>%
+  mutate(is_high_review = case_when(
+    review_num == 4 ~ "High",
+    review_num == 5 ~ "High",
+    TRUE~ "Not High") 
+  )
+head(review_scoring$is_high_review)# is_high_review column indicates if score is high or not
+cleaned_book.de <- (review_scoring) # Reassigning the dataset
+head(cleaned_book.de) # the dataset is clean and ready for the analysis
+View(cleaned_book.de)
+```
+# Finding the most profitable book
+```{r}
+#Grouping based on books and counting the number of purchases for each book
+profitable_book <- cleaned_book.de %>%
+  group_by(book) %>%
+  summarize(purchased = n()) %>%
+  arrange(-purchased)
+head(profitable_book)
+```
+# Based on the analysis, it is clear that **Fundamentals of R For Beginners** is the most profitable book...  
+
