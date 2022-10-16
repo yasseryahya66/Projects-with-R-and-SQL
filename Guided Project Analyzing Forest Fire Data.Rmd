@@ -1,0 +1,167 @@
+---
+title: 'Guided Project: Analyzing Forest Fire Data'
+author: "Yassir Al Masoudi"
+date: "2022-10-16"
+output: html_document
+---
+## In this guided project, our task is to apply these techniques, as well as data analysis skills you gained in earlier courses, to explore a select dataset on forest fires.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+# loading some important libraries
+
+```{r}
+library(tidyverse)
+```
+# importing the dataset
+```{r}
+forest.df <- read.csv("forestfires.csv")
+```
+## explore the dataset ?
+```{r}
+dim(forest.df) # 517 observations and 13 columns
+
+colnames(forest.df) # check columns' names
+glimpse(forest.df)   # displaying an overview of the dataset
+head(forest.df)     # checking first 6 raws of the dataset
+sum(is.na(forest.df)) # no missing data
+```
+
+```{r}
+# convert month variable into a categorical variable and make sure the months in the data are ordered correctly?
+
+forest.df$month <- factor(forest.df$month, levels = c(
+  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug",
+  "sep", "oct", "nov", "dec")
+)
+str(forest.df) # month variable converted with 12 levels
+
+forest.df$day <- factor(forest.df$day, levels = c(
+  "mon", "tue", "wed", "thu", "fri", "sat", "sun")
+)
+str(forest.df) # day variable converted with 7 levels
+
+```
+
+```{r}
+## Which months do forest fires happen the most?
+
+# let's count the number of fires on a monthly basis
+total_monthly_fires <- forest.df %>%  
+  group_by(month) %>%
+  summarize( total_fires = n())
+
+# let's create a column graph 
+total_monthly_fires %>% 
+  ggplot(aes(x = month, y = total_fires)) +
+  geom_col(fill = "#e25822") +
+  theme_bw() +
+  labs(
+    title = "Total Monthly Fires Throughout a Year",
+    x = "Months",
+    y = "Number of Total Fires") +
+  theme(
+    plot.title = element_text(size=22),axis.text = element_text(
+      size=15), axis.title=element_text(size=18))
+
+# Based on the visualization, forest fires occur in August and September. This makes sense as forest fires occur in the summer when temperature rises!
+
+## Which days of the week do forest fires happen the most?
+
+total_daily_fires <- forest.df %>%  
+  group_by(day) %>%
+  summarize( total_fires_day = n())
+
+# let's create a bar graph 
+total_daily_fires %>% 
+  ggplot(aes(x = day, y = total_fires_day)) +
+  geom_col(fill = "#e25822") +
+  theme_bw() +
+  labs(
+    title = "Total daily Fires Throughout a Week",
+    x = "Days",
+    y = "Number of Total Fires") + 
+  theme(
+    plot.title = element_text(size=22),axis.text = element_text(
+      size=15), axis.title = element_text(size=18))
+
+# Based on the visualization, forest fires mostly occur on Sundays, Saturdays, Fridays, & Mondays.
+```
+
+# look at the relationship between month and these variables
+# (FFMC, DMC, DC, ISI, temp, RH, wind, and rain)
+
+```{r}
+# let's use the pivot_longer function to create a category of such variables, and then to plot multiple plots at once, using facet_wrap
+
+forest.df_long <- forest.df  %>% 
+  pivot_longer(
+    cols = c(
+      FFMC, DMC, DC, ISI, temp, RH, wind, rain),
+    names_to = "category",
+    values_to = "value"
+    )
+# let's visualize it, and focus on the months of aug & Sep 
+forest.df_long %>%
+  ggplot(aes(x = month, y = value)) +
+  geom_point() +
+  geom_jitter() +
+  labs(
+    title = "Monthly Changes of Variables",
+    x = "Months of August & September",
+    y = "Variable's Values") +
+  facet_wrap(vars(category), scales = "free_y")
+  theme_bw()
+  
+# It is clear that FFMC, DC, DMC, wind, and temp have positive relationships with the time variable "month"
+  
+# To better see such patterns, let's limit the "x" xis to the the months of aug & sep
+
+forest.df_long %>%
+  ggplot(aes(x = month, y = value)) +
+  geom_point() +
+  geom_jitter() +
+  labs(
+    title = "Monthly Changes of Variables",
+    x = "Months of August & September",
+    y = "Variable's Values") +
+  xlim("aug", "sep") +
+  facet_wrap(vars(category), scales = "free_y")
+  theme_bw()
+```
+
+# look at the relationship between these variables (FFMC, DMC, DC, ISI, temp, RH, wind, and rain) and area
+
+```{r}
+forest.df_long %>%
+  ggplot(aes(x = value, y = area)) +
+  geom_point() +
+  geom_jitter() +
+  labs(
+    title = "Relationships between the Variables & Area",
+    x = "Variable's Values",
+    y = "Area Burned in hactare") +
+  facet_wrap(vars(category), scales = "free_x")
+  theme_bw()
+```
+
+## To better get insights into the relationships, it is recommended to address the outliers in the "area" variable
+
+```{r}
+
+forest.df_long %>%
+  filter(area < 300 & area != 0) %>%
+  ggplot(aes(x = value, y = area)) +
+  geom_point( ) +
+  geom_jitter() +
+  labs(
+    title = "Relationships between the Variables & Area",
+    x = "Variable's Values",
+    y = "Area Burned in hactare") +
+  facet_wrap(vars(category), scales = "free_x")
+  theme_bw()
+
+```
+
+
+
