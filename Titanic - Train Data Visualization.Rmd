@@ -1,0 +1,159 @@
+---
+title: "Titanic - Data Visualization"
+author: "Yassir Al Masoudi"
+date: "2022-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Visualization
+
+## This project has the objective of visualizing who survived the Titanic disaster. 
+
+```{r}
+# Importing packages
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+# importing the dataset
+titanic.df <- read.csv("train.csv")
+View(titanic.df)
+```
+
+```{r}
+# exploring the dataset
+head(titanic.df)
+tail(titanic.df)
+dim(titanic.df) # 12 columns & 891 observations 
+colnames(titanic.df)
+glimpse(titanic.df)
+```
+
+```{r}
+# converting categorical variables into factos
+
+titanic.df$Survived <- factor(titanic.df$Survived)
+titanic.df$Pclass <- as.factor(titanic.df$Pclass)
+titanic.df$Sex <- as.factor(titanic.df$Sex)
+titanic.df$Embarked <- as.factor(titanic.df$Embarked)
+str(titanic.df) # converted into factors
+```
+```{r}
+# let's visualize those who survived and those who did not
+ggplot(titanic.df, aes(x = Survived, fill = Survived)) +
+  geom_bar() +
+  labs(
+    title = "Survival & Death of Titanic Passengers",
+    x = "Death vs Survival",
+    y = "Number of Passengers"
+  ) +
+  theme_bw()
+
+# while more than 342 survived, more than 500 did not make it
+table(titanic.df$Survived) # 342 survived & 549 did not
+
+prop.table(table(titanic.df$Survived)) # .38 % survived & 62% did not make it 
+
+```
+
+```{r}
+# let's visualize those who survived and those who did not based on gender
+
+ggplot(titanic.df, aes(x = Survived, fill = Sex)) +
+  geom_bar() +
+  labs(
+    title = "Survival & Death of Titanic Passengers by gender",
+    x = "Death vs Survival",
+    y = "Number of Passengers"
+  ) +
+  theme_bw() +
+  facet_wrap(vars(Sex))
+
+# while 233 females survived, 109 males survived. Only 81 females did not make it compared to 468 males
+table(titanic.df$Survived, titanic.df$Sex) 
+
+# The rate of survival among females is 26% compared to 12% of males. In contrast, 09% females did not survive compared to around 53% of males who did not make it
+prop.table(table(titanic.df$Sex, titanic.df$Survived))
+```
+
+```{r}
+# let's visualize those who survived and those who did not based on gender and class
+
+ggplot(titanic.df, aes(x = Survived, fill = Sex)) +
+  geom_bar() +
+  labs(
+    title = "Survival & Death of Titanic Passengers by gender & Class",
+    x = "Death vs Survival",
+    y = "Number of Passengers"
+  ) +
+  theme_bw() +
+  facet_wrap(vars(Sex, Pclass))
+
+# based on the visualization, it appears that passengers in the first class, espcially females, did survive while those passengers in the third class were not foturnute to make it.
+
+# reporting the exact number of survivals & deaths among the thee classes
+table(titanic.df$Pclass, titanic.df$Survived, titanic.df$Sex) 
+```
+
+```{r}
+# let's visualize those who survived and those who did not based on age
+
+ggplot(titanic.df, aes(x = Age, fill = Survived)) +
+  geom_histogram() +
+  labs(
+    title = "Survival & Death of Titanic Passengers by age",
+    x = "Passengers' Ages",
+    y = "Number of Passengers"
+  ) +
+  theme_bw() 
+# To better get insight into the age variable, let's add an age_group variable
+
+titanic_age_group <- titanic.df %>%
+  mutate(age_group = case_when(
+    Age >= 0.00 & Age <= 14.00 ~ "children",
+    Age >= 15.00 & Age <= 24.00 ~ "youth",
+    Age >= 25.00 & Age <= 64.00 ~ "adult",
+    Age >= 64.00 ~ "senior",
+    TRUE ~ "NA")
+  )
+
+# check the elements of the new mutated column
+unique(titanic_age_group$age_group)
+
+# plot it based on the age-group
+ggplot(titanic_age_group, aes(x = Survived, fill = age_group)) +
+  geom_bar() +
+  labs(
+    title = "Survival & Death of Titanic Passengers by Age Group",
+    x = "Death vs Survival"
+  ) +
+  theme_bw() 
+
+View(titanic_age_group)
+prop.table(table(titanic_age_group$age_group, titanic_age_group$Survived))
+
+table(titanic_age_group$age_group, titanic_age_group$Survived) 
+
+```
+
+```{r}
+# let's visualize those who survived and those who did not based on gender, class, and age
+
+ggplot(titanic.df, aes(x = Age, fill = Survived)) +
+  geom_histogram( bins = 30) +
+  labs(
+    title = "Survival & Death of Titanic Passengers by Age, gender & Ticket Class",
+    x = "Death vs Survival",
+    y = "Number of Passengers"
+  ) +
+  theme_bw() +
+  facet_wrap(vars(Sex, Pclass))
+
+# Based on the histogram visualization, it is obvious that children survived across different classes. And yet, one female child in the first class did not make it.
+```
+
