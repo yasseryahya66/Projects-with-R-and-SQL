@@ -1,0 +1,132 @@
+---
+title: 'Guided Project: NYC Schools Perceptions: Cleaning and Analyzing Data'
+author: "Yassir"
+date: "2022-10-28"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+About the project:
+
+The project has the objective of examining the relationship between the perceptions of student, teacher, and parent of NYC school quality and demographic and academic success metrics. The project further investigates if students, teachers, and parents have similar perceptions of NYC school quality?
+
+The data is downloaded from city of New York open data, department of education.
+The data are presented in csv,txt text, and xlxs formats. I will use **read_tsv( )** from readr package of the tidyverse to read the text file.
+From the survey data dictionary, it appears that the dataframes can be joined using the *DBN* key. Also, our variables of interest seem to be safety and respect, communication, engagement, and academic expectations which appear to capture parent, student, and teachers' perceptions of New York school quality. Further, the combined dataframe contain demographic and academic success metrics variables. 
+
+```{r}
+# loading tidyverse
+library(tidyverse)
+
+#importing the dataset
+combined_df <- read_csv("combined.csv")
+gened_df <- read_tsv("masterfile11_gened_final.txt")
+d75_df <- read_tsv("masterfile11_d75_final.txt")
+```
+
+```{r}
+#simplifying the gened_df 
+gened_df_1 <- gened_df %>%
+  filter(schooltype == "High School") %>%
+  select(1:3, 17:32)
+dim(gened_df_1)
+```
+
+```{r}
+#simplifying the the d75_df
+d75_df_1 <- d75_df %>%
+  select(1:3, 17:32)
+dim(d75_df_1)
+```
+
+```{r}
+#using the bind_rows function from dplyr to combine the two survey dataframes
+bind_gened_d75 <- bind_rows(gened_df_1, d75_df_1)
+```
+
+```{r}
+# let's rename dbn to DBN before joining the dataframes
+bind_gened_d75 <- bind_gened_d75 %>%
+  rename(DBN = dbn)
+View(bind_gened_d75)
+```
+let's left-join bind_gened_d75 to combined_df to keep observations in the survey dataframe that correspond to observations in combined.
+```{r}
+combined_bind_df <- combined_df %>%
+  left_join(bind_gened_d75, by = "DBN")
+head(combined_bind_df)
+```
+
+let's create a correlation matrix and convert it into a tibble to easily identify interesting relationships
+```{r}
+cor_mat <- combined_bind_df %>% #correlation matrix
+  select(avg_sat_score, 33:48) %>%
+  cor(use = "pairwise.complete.obs")
+
+cor_tib <- cor_mat %>%      #convert cor_mat into a tibble
+  as_tibble(rownames = "variable")
+```
+
+let's find interesting relationships between the variable and avg_sat_score by filtering avg_sat_score > 0.25 or < -0.25
+```{r}
+interesting_cor_tib <- cor_tib %>%
+  select(variable, avg_sat_score) %>%
+  filter(avg_sat_score > 0.25 | avg_sat_score < -0.25)
+```
+
+let's reshape the data to create scatter plots to explore the relationships between avg_sat_score and saf_t_11, saf_s_11, aca_s_11, saf_tot_11
+```{r}
+combined_bind_longer_df <- combined_bind_df %>%
+  pivot_longer(cols = c(saf_t_11, saf_s_11, saf_tot_11, aca_s_11), names_to = "interesting_cor_variables", values_to = "score")
+
+ggplot(combined_bind_longer_df) +
+  aes(x = score,y = avg_sat_score, color = interesting_cor_variables) +
+  geom_point()+
+  facet_wrap(~ interesting_cor_variables)
+```
+
+let's reshape the **combined_bind_df** by using pivot_longer
+```{r}
+survey_score_df <- combined_bind_df %>%
+  pivot_longer(cols = 33: 48, names_to = "survey_questions",
+               values_to = "score")
+```
+
+let's create two columns: **response_type** & **metric**
+```{r}
+survey_score_df <- survey_score_df %>%
+  mutate(response_type = str_sub(survey_questions, 4,6)) %>%
+  mutate(metric = str_sub(survey_questions, 1,3))
+unique(survey_score_df$response_type) #check the unique values
+```
+let's use *if_else function* to replace response_type variable values such that p becomes parent, t becomes teacher, s becomes student, and to becomes total
+```{r}
+survey_score_df <- survey_score_df %>%
+  mutate(response_type = ifelse(response_type == "_p_", "parent",
+                                ifelse(response_type == "_t_", "teacher",
+                                       ifelse(response_type == "_s_", "student",
+                                              ifelse(response_type == "_to", "total", "NA")))))
+```
+
+let's use summary statistics to explore respondents' perceptions of NYC quality metrics
+```{r}
+grouping_survey_score_df <- survey_score_df %>%
+  filter(response_type != "total") %>%
+  group_by(metric, response_type) %>%
+  summarize(avg_score = mean(score, na.rm = TRUE))
+```
+It appears that parents tend to score more than teachers and students across the four school quality metrics. While all groups share slightly similar perceptions on academic expectations and engagement, they notably differ in communication, as well as safety and respect!
+
+let's visualize such relationships, using box_plot
+```{r}
+box_plot <- survey_score_df %>%
+  filter(response_type != "total") %>%
+  ggplot(aes(x = metric, y = score, fill = response_type)) +
+  geom_boxplot()
+box_plot
+```
