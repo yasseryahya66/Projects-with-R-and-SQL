@@ -1,0 +1,221 @@
+---
+title: 'Kaggle : Kaggle Employee dataset with Multivariate Logistic Regression'
+author: "Yassir"
+date: "2023-10-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+This dataset contains information about employees in a company, including their educational backgrounds, work history, demographics, and employment-related factors
+
+# Exploring the dataset
+```{r}
+#loading tidyverse
+# importing the dataset
+library(tidyverse)
+employee_df <- read_csv("Employee.csv")
+
+dim(employee_df) # 9 variables & 4653 rows
+head(employee_df)
+str(employee_df)
+glimpse(employee_df)
+```
+# let's check if there is missing values
+```{r}
+# no missing values
+sum(is.na(employee_df))
+```
+# let's transform some variables into factors to better visualize them
+```{r}
+# let's use as_factor from forcats and mutate from dplyr
+employee_df <- employee_df %>% mutate(LeaveOrNot = as_factor(LeaveOrNot))
+
+employee_df <- employee_df %>% mutate(Gender = as_factor(Gender))
+
+employee_df <- employee_df %>%
+               mutate(Education = as_factor(Education))
+
+```
+
+# What is the distribution of educational qualifications among employees?
+```{r}
+# let's visualize the distribution of educational qualifications among employees
+ggplot(data = employee_df, aes(x = Education, fill = Education)) +
+  geom_bar()
+
+# let's visualize the educational qualifications using percentages
+ggplot(data = employee_df, 
+       aes(x = Education, y = ..prop.. * 100, group = 1)) +
+geom_bar() +
+  labs(title = "Distribution of Educational Qualifications Among Employees",
+       x = " Employees' Educational Qualification",
+       y = "Percentages")
+
+# Based on the bar chart, almost 80% of employees have bachelor degrees while around 20% and 5% of employees have master and PhD degrees respectively.
+
+# we can solve it using mutate from dplyr
+
+employee_df %>%
+  count(Education) %>%
+  mutate(percentage = n / sum(n) * 100) %>%
+  ggplot(aes(x = Education, y = percentage, fill = Education)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Distribution of Educational Qualifications Among Employees",
+       x = "Employees' Educational Qualification",
+       y = "Percentages") +
+  scale_y_continuous(labels = scales::percent_format())
+
+```
+
+# How does the length of service (Joining Year) vary across different cities?
+```{r}
+# Create a grouped histogram
+ggplot(data = employee_df, aes(x = JoiningYear, fill = City)) +
+  geom_histogram(binwidth = 0.5,position = "dodge") +
+  labs(title = "Length of Service Across Different Cities",
+       x = "Joining Year",
+       y = "Frequency") 
+# Employees in Bangalore city joined longer compared to Pune and New Delhi respectively.
+
+# we can also use box plot to visualize the length of service across the different citites
+ggplot(employee_df, aes(x = City, y = JoiningYear, fill = City)) +
+  geom_boxplot() +
+  labs(title = "Length of Service Across Different Cities",
+       x = "City",
+       y = "Joining Year")
+```
+
+# Is there a correlation between Payment Tier and Experience in Current Domain?
+```{r}
+# We apply the spearman method to find the correlations between ordinal variables 
+
+# let's rank the ExperienceInCurrentDomain variable
+experience_rank <- rank(employee_df$ExperienceInCurrentDomain)
+
+# let's find the Spearman correlation
+cor(employee_df$PaymentTier, experience_rank, method = "spearman")
+
+#  0.01519145
+# Based on the above correlation coefficient, it suggests that there is very little evidence of a monotonic relationship between the two variables
+```
+
+# What is the gender distribution within the workforce?
+```{r}
+unique(employee_df$Gender)
+ggplot(data = employee_df, aes(x = (Gender), fill = Gender)) +
+  geom_bar() +
+  labs(title = "Distribution of Employees by Gender") +
+  scale_fill_manual(values = c("blue", "pink"), name = "Gender", labels = c("Male", "Female"))
+
+```
+
+# Are there any patterns in leave-taking behavior among employees?
+```{r}
+# patterns based on Education
+# employees with master degrees are more likely to leave the firm
+
+ggplot(data = employee_df, aes(x = employee_df$Education, fill =  employee_df$LeaveOrNot)) +
+  geom_bar(position ="dodge") +
+  labs(title = "Leave-Taking Behavior Among Employees by Education Level",
+       x = "Education Level",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave"))
+```
+
+```{r}
+# patterns based on gender
+# females employees tend to leave the firm more than males do
+
+ggplot(data = employee_df, aes(x = employee_df$Gender, fill =  employee_df$LeaveOrNot)) +
+  geom_bar(position ="dodge") +
+  labs(title = "Leave-Taking Behavior Among Employees by Gender",
+       x = "Gender",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave"))
+
+```
+
+```{r}
+# patterns based on payement tier
+
+# employees with payment tier 2 tends to leave the firm more than those who stay with payment tier 2
+
+ggplot(data = employee_df, aes(x = employee_df$PaymentTier, fill =  employee_df$LeaveOrNot)) +
+  geom_bar(position ="dodge") +
+  labs(title = "Leave-Taking Behavior Among Employees by Payment Tier",
+       x = "Payment Tier",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave")) 
+
+```
+
+```{r}
+# patterns based on age
+# Employees whose age range between 24-29 are more likely to leave the firm
+
+ggplot(data = employee_df, aes(x = employee_df$Age, fill =  employee_df$LeaveOrNot)) +
+  geom_histogram(position ="dodge", bins = 30) +
+  labs(title = "Leave-Taking Behavior Among Employees by Age",
+       x = "Age",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave")) 
+
+# we can use box plot as well!
+
+ggplot(employee_df, aes(x = LeaveOrNot, y = Age, fill = LeaveOrNot)) +
+  geom_boxplot() +
+  labs(title = "Leave-Taking Behavior by Age",
+       x = "Leave or Not",
+       y = "Age") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave"))
+
+```
+
+```{r}
+# patterns based on City
+# employees in Pune city tend to leave more than those employees who stay in Pune city
+
+ggplot(data = employee_df, aes(x = City, fill =  employee_df$LeaveOrNot)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Leave-Taking Behavior Among Employees by City",
+       x = "City",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave")) 
+
+
+```
+
+```{r}
+# patterns based on joining year
+# employees left the firm in 2018
+
+ggplot(data = employee_df, aes(x = employee_df$JoiningYear, fill =  employee_df$LeaveOrNot)) +
+  geom_bar(position ="dodge") +
+  labs(title = "Leave-Taking Behavior Among Employees by Joining Year",
+       x = "Joining Year",
+       y = "Count",
+       fill = "Leave or Not") +
+  scale_fill_discrete(name = "Leave or Not", labels = c("Stay", "Leave")) 
+
+
+```
+
+let's do multivariate logistic regression model to predict the "LeaveOrNot" outcome variable
+```{r}
+# Fit logistic regression model
+model <- glm(LeaveOrNot ~ Education + City + Gender + Age + PaymentTier, data = employee_df, family = "binomial")
+
+
+# Summary of the logistic regression model
+summary(model)
+
+```
