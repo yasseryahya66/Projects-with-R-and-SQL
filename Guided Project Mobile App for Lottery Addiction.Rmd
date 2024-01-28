@@ -1,0 +1,203 @@
+---
+title: 'Guided Project: Mobile App for Lottery Addiction'
+author: "Yassir"
+date: "2024-01-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# introduction
+This project aims to outline the rationale behind a mobile application developed for individuals struggling with a lottery addiction. By guiding users through the process of calculating the extremely low probabilities associated with winning the lottery, the goal is for the app to foster an awareness that acquiring multiple lottery tickets contributes minimally to their chances of winning. Through this heightened understanding, it is anticipated that users will cease engaging in unhealthy patterns of purchasing lottery tickets.
+
+# Core Functions
+```{r}
+# creating factorial function
+factorial <- function(n) {
+  product = 1
+  for (i in 1:n) {
+    product = product * i
+  }
+  return(product)
+}
+
+# creating the combination function
+combinations <- function(n, k) {
+  numerator <- factorial(n)
+  denominator <- factorial(k) * factorial(n - k)
+  return(numerator / denominator)
+}
+```
+
+# one_ticket_probability
+```{r}
+# 1- Write a function named one_ticket_probability, which takes in a list of six unique numbers and prints the probability of winning in a way that's easy to understand.
+# Use the combinations()function
+# The user inputs just one combination, which means the number of successful outcomes is 1.
+# Use the number of successful outcomes and the total number of possible outcomes to calculate the probability for one ticket.
+# The function should print the probability in a way that's easy to understand:
+  # Print the probability as a percentage.
+  # Use the sprintf() method to make the printed message more personalized with respect to what the user inputs.
+
+# 2- Test your function using a few inputs.
+# 3- Add some context for your readers to explain what you did in this step and why.
+
+one_ticket_probability <- function(nums) {
+  total_combinations <- combinations(49, 6)
+  prob <- (1 / total_combinations) * 100
+  pretty_prob <- sprintf("%1.9f", prob)
+  s <- paste("You have a ", pretty_prob, "% chance of winning the big prize.", sep = "")
+  return(s)
+}
+
+one_ticket_probability(c(1, 5, 10, 15, 20, 25))
+```
+# Historical Data Check for Canada Lottery
+```{r}
+library(tidyverse)
+#1- Open the 649.csv file and save it as a tibble.
+lottery_df <- read_csv("649.csv")
+
+#2-Print the number of rows and columns of this data set.
+dim(lottery_df) # 11 columns & 3665 rows
+
+#3-Print the first and the last three rows and try to get familiar with the data set.
+head(lottery_df,3)
+tail(lottery_df,3)
+```
+
+# A New Data Structure
+```{r}
+data1 <- c(1, 3, 5)
+data2 <- c(2, 4, 6)
+data3 <- c(8, 9, 7)
+
+#  create an unnamed list and assign it to the variable unnamed_list
+unnamed_list <- list(data1, data2, data3)
+print(unnamed_list)
+
+# Using double square bracket notation, assign the first vector in unnamed_list to the variable first_vector
+first_vector <- unnamed_list[[1]]
+print(first_vector)
+
+# Create another list using the same vectors as above, but create a named list instead. Use the names first, second and third, and assign this named list to the variable named_list
+named_list <- list(first = data1, second = data2, third = data3)
+print(named_list)
+
+# Using dollar sign notation, add up the first numbers in all the vectors in named_list and assign it to the variable first_item_sum
+first_item_sum <- named_list$first[1] + named_list$second[2] + named_list$third[3]
+print(first_item_sum)
+```
+
+# Using pmap
+```{r}
+# Using the same data above, use the pmap function to create a new list that contains the average of the items in the current iteration. Assign this list to averages.
+  # For example, the first item of this new list should contain the average of the first items of each vector.
+
+data1 <- c(1, 3, 5)
+data2 <- c(2, 4, 6)
+data3 <- c(8, 9, 7)
+data_list <- list(data1, data2, data3)
+
+averages <- pmap(data_list, function(x, y, z) { (x + y + z) / 3 })
+
+# Convert averages back into a vector, and assign the first item of it to the variable first_average.
+unlist(averages)
+first_average <- unlist(averages)[1]
+print(first_average)
+```
+# Function for Historical Data Check
+```{r}
+# Use the pmap function to take the 6 NUMBER DRAWN columns and output a list of vectors.
+historical_data <- pmap(
+  list(
+     u <- lottery_df$`NUMBER DRAWN 1`,
+     v <- lottery_df$`NUMBER DRAWN 2`,
+     w <- lottery_df$`NUMBER DRAWN 3`,
+     x <- lottery_df$`NUMBER DRAWN 4`,
+     y <- lottery_df$`NUMBER DRAWN 5`,
+     z <- lottery_df$`NUMBER DRAWN 6`), function(u,v,w,x,y,z){c(u,v,w,x,y,z)}
+)
+```
+
+```{r}
+#2- Write a function named check_historical_occurence() that takes in two inputs: an R vector containing the user numbers and the list containing the sets of the winning numbers from part 1.
+check_historical_occurrences <- function(lot, hist_data = historical_data) {
+  historical_matches <- map(hist_data, function(x) {setequal(x, lot)})
+  num_past_matches <- sum(unlist(historical_matches))
+  s <- paste("The combination you entered has appeared ", 
+             num_past_matches, 
+             " times in the past. ",
+             "Your chance of winning the big prize in the next drawing using this combination is 0.0000072%", sep = "")
+  return(s)
+}
+```
+
+
+```{r}
+#3- Test your function with a few inputs. 
+# Try 3, 11, 12, 14, 41 and 43.
+check_historical_occurrences(c(3,11,12,14,41, 43), historical_data)
+```
+
+
+```{r}
+# Try a string of 6 consecutive values.
+check_historical_occurrences(c(1,2,3,4,5,5), historical_data)
+```
+# Multi-ticket Probability
+```{r}
+# Write a function named multi_ticket_probability that prints the probability of winning the big prize depending on the number of different tickets played. 
+# Use the combinations() function you wrote in a previous screen.
+# Print the probability as a percentage.
+# Use the sprintf() method to make the printed message more personalized
+multi_ticket_probability <- function(n) {
+  total_combinations <- combinations(49, 6)
+  prob <- (n / total_combinations) * 100
+  pretty_prob <- sprintf("%1.9f", prob)
+  s <- paste("you have a ", pretty_prob, "% chance of winning the big prize.", sep = "")
+  return(s)
+}
+
+```
+
+
+```{r}
+# Test your function using the following inputs: 1, 10, 100, 10000, 1000000, 6991908, 13983816
+
+# Add some context for your readers to explain what you did in this step and why.
+test_amounts <- c(1, 10, 100, 10000, 1000000, 6991908, 13983816)
+for (n in test_amounts) {
+  print(paste("For ", n, " tickets, ",  multi_ticket_probability(n), sep = ""))
+}
+```
+# Less Winning Numbers — Function
+```{r}
+# 1- Write a function named probability_less_6 which takes in an integer and prints information about the chances of winning depending on the value of that integer.
+
+probability_less_6 <- function(n) {
+  
+    n_combinations_ticket = combinations(6, n)
+    n_combinations_remaining = combinations(43, 6 - n)
+    successful_outcomes = n_combinations_ticket * n_combinations_remaining
+    n_combinations_total = combinations(49, 6)
+    
+    prob = (successful_outcomes / n_combinations_total) * 100
+    pretty_prob <- sprintf("%1.9f", prob)
+  
+  s <- paste("you have a ", pretty_prob, "% chance of winning the big prize.", sep = "")
+  return(s)
+}
+
+```
+
+```{r}
+# Test your function on all possible inputs: 3, 4, and 5
+probability_less_6(3)
+probability_less_6(4)
+probability_less_6(5)
+
+```
+
