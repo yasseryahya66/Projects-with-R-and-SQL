@@ -1,0 +1,229 @@
+---
+title: 'Guided Project: Winning Jeopardy'
+author: "Yassir"
+date: "2024-02-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Getting To Know Jeopardy Data
+```{r}
+# loading tidyverse
+library(tidyverse)
+```
+```{r}
+# loading the dataset
+jeopardy <- read_csv("jeopardy.csv")
+```
+
+```{r}
+# printing out the first 5 rows of jeopardy
+head(jeopardy, 5)
+```
+
+```{r}
+# Printing out the columns of the jeopardy data
+colnames(jeopardy)
+```
+```{r}
+# Replace spaces with underscores and convert to lowercase for each column name
+new_colnames <- colnames(jeopardy) %>%
+  tolower() %>%
+  str_replace_all(" ", "_")
+
+# Assign the modified column names back to the data frame
+colnames(jeopardy) <- new_colnames
+```
+# Fixing Data Types
+```{r}
+# exploring data types
+glimpse(jeopardy)
+```
+```{r}
+# examining the value column
+unique(jeopardy$value)
+
+# R converts the value column into character because it incorporates a dollar sign, comma, and uses the value "None"
+```
+```{r}
+# Filter out rows where the Value column is not "None"
+jeopardy <- jeopardy %>%
+  filter(value != "None")
+```
+
+```{r}
+# Remove dollar signs and commas from the Value column using regular expressions
+jeopardy <- jeopardy %>%
+  mutate(value = str_replace_all(value, "\\$", "")) %>%   # Remove dollar signs
+  mutate(value = str_replace_all(value, ",", ""))         # Remove commas
+```
+
+```{r}
+# Convert the cleaned Value column to numeric
+jeopardy <- jeopardy %>%
+  mutate(value = as.numeric(value))
+
+# Check the structure of the data frame to ensure Value column is numeric
+glimpse(jeopardy)
+```
+# Normalizing Text
+```{r}
+# Function to normalize text (lowercase and remove punctuation)
+normalize_text <- function(text) {
+  text %>%
+    # Lowercase all words
+    str_to_lower() %>%
+    # Remove all punctuation (keeping letters and numbers)
+    str_replace_all("[^[:alnum:][:space:]]", "")
+}
+
+# Normalize the question, answer, and category columns
+jeopardy <- jeopardy %>%
+  mutate(
+    question = normalize_text(question),
+    answer = normalize_text(answer),
+    category = normalize_text(category)
+  )
+
+# Check the first few rows of the data frame
+head(jeopardy)
+```
+# Making Dates More Accessible
+```{r}
+# Split the air_date column into year, month, and day
+jeopardy <- jeopardy %>%
+  separate(air_date, into = c("year", "month", "day"), sep = "-")
+
+# Convert the new columns to numeric
+jeopardy <- jeopardy %>%
+  mutate(
+    year = as.numeric(year),
+    month = as.numeric(month),
+    day = as.numeric(day)
+  )
+
+# Check the structure of the data frame
+glimpse(jeopardy)
+```
+# Focusing On Particular Subject Areas
+```{r}
+# Count how many times "science" appears in the Category column
+science_appear <- sum(jeopardy$category == "science")
+
+# Count how many times "science" doesn't appear in the Category column
+science_not_appear <- nrow(jeopardy) - science_appear
+
+# Hypothesis test using chisq.test()
+chisq_test_science <- chisq.test(c(science_appear, science_not_appear), p = c(1/3369, 3368/3369))
+
+# Print the test result
+print(chisq_test_science)
+
+# Given the low p value, we reject the null hypothesis.
+# the "science" category has a higher prevalence in the dataset.
+```
+```{r}
+# Count how many times "history" appears in the Category column
+history_appear <- sum(jeopardy$category == "history")
+
+# Count how many times "history" doesn't appear in the Category column
+history_not_appear <- nrow(jeopardy) - history_appear
+
+# Hypothesis test using chisq.test()
+chisq_test_history <- chisq.test(c(history_appear, history_not_appear), p = c(1/3369, 3368/3369))
+
+# Print the test result
+print(chisq_test_history)
+
+# Given the low p value, we reject the null hypothesis.
+# the "history" category has a higher prevalence in the dataset.
+```
+```{r}
+# Count how many times "shakespeare" appears in the Category column
+shakespeare_appear <- sum(jeopardy$category == "shakespeare")
+
+# Count how many times "shakespeare" doesn't appear in the Category column
+shakespeare_not_appear <- nrow(jeopardy) - shakespeare_appear
+
+# Hypothesis test using chisq.test()
+chisq_test_shakespeare <- chisq.test(c(shakespeare_appear, shakespeare_not_appear), p = c(1/3369, 3368/3369))
+
+# Print the test result
+print(chisq_test_shakespeare)
+
+# Given the low p value, we reject the null hypothesis.
+# the "shakespeare" category has a higher prevalence in the dataset.
+```
+# Unique Terms In Questions
+```{r}
+# Sort jeopardy by ascending air date
+jeopardy <- jeopardy %>%
+  arrange(year, month, day)
+
+# Initialize an empty vector to store all unique terms
+terms_used <- c()
+
+# Iterate through each question
+questions <- jeopardy$question
+for (question in questions) {
+  # Split the question into individual words
+  words <- strsplit(question, "\\s+")
+  # Check each word and add it to terms_used if it satisfies the criteria
+  for (word in unlist(words)) {
+    if (nchar(word) >= 6 && !(word %in% terms_used)) {
+      terms_used <- c(terms_used, word)
+    }
+  }
+}
+
+# let's view the 100 rows of the unique terms used
+head(terms_used,100)
+```
+# Terms In Low and High Value Questions
+```{r}
+# Initialize an empty tibble to store the results
+result <- tibble(term = character(), high_value_count = numeric(), low_value_count = numeric(), p_value = numeric())
+
+# Iterate through each term
+for (term in terms_used) {
+  # Count high and low value questions for the term
+  counts <- jeopardy %>%
+    filter(str_detect(question, term)) %>%
+    summarise(
+      high_value_count = sum(value >= 800),
+      low_value_count = sum(value < 800)
+    ) %>%
+    as.list() # Convert the tibble to a list
+  
+  # Perform chi-squared test
+  chi_squared_test <- chisq.test(c(counts[['high_value_count']], counts[['low_value_count']]), p = c(2/5, 3/5))
+  
+  # Append results to the result tibble
+  result <- bind_rows(result, tibble(
+    term = term,
+    high_value_count = counts[['high_value_count']],
+    low_value_count = counts[['low_value_count']],
+    p_value = chi_squared_test$p.value
+  ))
+}
+
+# Print the result
+print(result)
+```
+```{r}
+# let's arrange the result based on high_value_count
+result %>%
+  arrange(desc(high_value_count))
+
+# The term "archive" is associated with high value questions.
+```
+
+
+
+
+
+
+
