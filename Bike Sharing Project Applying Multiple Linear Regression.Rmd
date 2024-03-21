@@ -1,0 +1,108 @@
+---
+title: "Bike Sharing Project: Applying Multiple Linear Regression"
+author: "Yassir"
+date: "2024-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# loading tidyverse
+library(tidyverse)
+```
+
+```{r}
+# loading the dataset
+bike_df <- read_csv("day.csv")
+
+```
+```{r}
+# exploring the dataset
+glimpse(bike_df)
+
+```
+
+```{r}
+# checking the summary statistics
+summary(bike_df)
+```
+
+```{r}
+# checking missing values
+colSums(is.na(bike_df))
+```
+```{r}
+# selecting numeric variables for correlations 
+bike_df_numeric <- select_if(bike_df, is.numeric)
+head(bike_df_numeric)
+```
+
+```{r}
+# let's remove factors that are not related
+bike_df_numeric <- select(bike_df_numeric,
+                          - casual, - instant, - registered)
+head(bike_df_numeric)
+```
+
+
+```{r}
+# let's do correlations before performing regressions
+cor(bike_df_numeric)
+```
+
+# the correlation matrix clarifies that cnt is moderlately corelated with the following predictors: season , year, weathersit, temp, and atem
+
+```{r}
+# selecting our variables of interest and applying cor again
+bike_var_df <- bike_df_numeric %>%
+  select(season, yr, weathersit, temp, atemp, cnt)
+
+head(bike_var_df)
+```
+
+```{r}
+model_1 <- lm(cnt ~ season + yr + weathersit + temp + atemp, data = bike_var_df)
+
+summary(model_1)
+```
+
+```{r}
+# loading "car" package to check vif
+library(car)
+```
+
+```{r}
+# checking vif
+vif_values <- vif(model_1)
+print(vif_values)
+```
+
+```{r}
+# let's remove atemp from the model
+model_2 <- lm(cnt ~ season + yr + weathersit + temp, data = bike_var_df)
+
+summary(model_2)
+```
+
+```{r}
+# checking vif
+vif_values <- vif(model_2)
+print(vif_values)
+
+```
+# While "temp" has very little multicollinearity with the other independent variables, model_2 seems to be good with Adjusted R-squared almost 0.78.
+
+```{r}
+# visualizing the residuals to evaluate the model
+
+residuals_df <- data.frame(residuals = model_2$residuals)
+
+# ploting the residuals
+ggplot(data = residuals_df,
+aes(x = residuals)) +
+geom_histogram()
+```
+The residuals follow a normal distribution. Hence our assumption for Linear Regression is valid.
