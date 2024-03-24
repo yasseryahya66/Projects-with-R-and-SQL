@@ -1,0 +1,101 @@
+---
+title: "Summary of Weather during WWW2"
+author: "Yassir"
+date: "2024-03-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The aim of the project is to check if there is a relationship between the minimum and maximum temperature, as well predicting the maximum temperature!
+```{r}
+# loading libraries
+library(tidyverse)
+library(car)
+```
+
+
+```{r}
+weather_df <- suppressMessages(read_csv("Summary of Weather.csv"))
+
+```
+```{r}
+# exploring the dataset
+glimpse(weather_df)
+```
+
+```{r}
+weather_temp <- weather_df %>%
+  select(MaxTemp, MinTemp)
+```
+
+```{r}
+# renaming col names
+
+weather_temp <- weather_temp %>%
+  rename(min_temp = MinTemp,
+         max_temp = MaxTemp)
+```
+
+```{r}
+# checking summary statistics
+summary(weather_temp)
+```
+```{r}
+# checking if there is missing values
+colSums(is.na(weather_temp))
+```
+```{r}
+# checking if outliers exist
+ggplot(data = weather_temp, aes(x = "",
+                                y = max_temp)) +
+  geom_boxplot()
+
+# outliers do exist in max_temp
+```
+
+```{r}
+# checking if outliers exist
+ggplot(data = weather_temp, aes(x = "",
+                                y = min_temp)) +
+  geom_boxplot()
+
+# outliers do exist in min_temp
+```
+
+```{r}
+# ploting scatter plot
+ggplot(data = weather_temp, aes(x = min_temp,
+                                y = max_temp)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) # fitting a line
+```
+It seems there is a strong, positive linear relationship between the min_temp and max_temp. let's find how strong this relationship is by using cor () function
+
+```{r}
+cor(weather_temp) # r = 0.88
+```
+```{r}
+# let's build the regression model
+model_1 <- lm(max_temp ~ min_temp, data = weather_temp)
+summary(model_1)
+```
+
+```{r}
+# evaluating model_1 using diagnostic plots
+plot(model_1)
+
+# plots indicate indicate linearity and normal distributions of the residuals. While there are outliers, they are not affecting the model, as indicated by residuals vs leverage plot.
+```
+```{r}
+names(model_1)
+weather_temp$residuals <- model_1$residuals
+weather_temp$predicted <- model_1$fitted.values
+head(weather_temp)
+```
+```{r}
+# let's predict some values
+predict(model_1, data.frame(min_temp = c(21,25,25.5)))
+```
