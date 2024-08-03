@@ -1,0 +1,202 @@
+---
+title: 'Guided Project: Predicting Car Prices'
+author: "Yassir"
+date: "2024-07-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load libraries
+library(caret)
+library(tidyverse)
+```
+```{r}
+path <- "E:/learning R/R Lessons/imports-85.data"
+cars <- read_csv(path)
+```
+# Introduction
+```{r}
+# explore the dataset
+head(cars)
+```
+
+```{r}
+# check column names
+colnames(cars)
+```
+
+```{r}
+# rename columns
+colnames(cars) <- c(
+  "symboling",
+  "normalized_losses",
+  "make",
+  "fuel_type",
+  "aspiration",
+  "num_doors",
+  "body_style",
+  "drive_wheels",
+  "engine_location",
+  "wheel_base",
+  "length",
+  "width",
+  "height",
+  "curb_weight",
+  "engine_type",
+  "num_cylinders",
+  "engine_size",
+  "fuel_system",
+  "bore",
+  "stroke",
+  "compression_ratio",
+  "horsepower",
+  "peak_rpm",
+  "city_mpg",
+  "highway_mpg",
+  "price"
+)
+```
+
+```{r}
+# check if columns are renamed
+colnames(cars)
+```
+```{r}
+ # Removing non-numerical columns and removing missing data
+clean_cars <- cars %>% 
+  select(
+    symboling, wheel_base, length, width, height, curb_weight,
+    engine_size, bore, stroke, compression_ratio, horsepower, 
+    peak_rpm, city_mpg, highway_mpg, price
+  ) %>% 
+  filter(
+    stroke != "?",
+    bore != "?",
+    horsepower != "?",
+    peak_rpm != "?",
+    price != "?"
+  ) %>%  
+  mutate(across(where(is.character), as.numeric)) %>%
+  drop_na()
+
+# check if NA values exist
+colSums(is.na(clean_cars))
+```
+
+```{r}
+# check column types
+map(clean_cars, typeof)
+```
+
+# Examining Relationships Between Predictors
+```{r}
+featurePlot(clean_cars, clean_cars$price)
+
+```
+# it seems there are some positive relationships between price and the following independent variables: horsepower, curb_weight, engine_sizek, bore, wheel_base, length, and width.
+# there are also some negative relationships between price and the following independent variables: city_mpg, and highway_mpg.
+# linear relationships don't exist between price and the following variables: peak_rpm, stroke, compression_rate, symboling, and maybe height
+
+
+```{r}
+ggplot(clean_cars, aes(x = price)) +
+  geom_histogram(color = "blue") +
+  labs(
+    title = "Distribution of prices in cars dataset",
+    x = "Price",
+    y = "Frequency"
+  )
+```
+
+# Setting Up the Train-Test Split
+```{r}
+set.seed(1)
+train_indices <- createDataPartition(y = clean_cars$price, 
+                                     p = 0.8, 
+                                     list = FALSE)
+train_clean_cars <- clean_cars[train_indices,]
+test_clean_cars <- clean_cars[-train_indices,]
+#  Cross-validation and hyperparameter optimization
+knn_grid <- expand.grid(k = 1:20)
+train_control <- trainControl(method = "cv", number = 5)
+# choose a model by having all variables in the model
+knn_model <- train(price ~ horsepower + curb_weight + engine_size +
+                   bore + wheel_base + length + width + city_mpg + highway_mpg,
+               data = train_clean_cars,
+               method = "knn",
+               trControl = train_control,
+               tuneGrid = knn_grid,
+               preProcess = c("center", "scale"))
+
+```
+
+
+```{r}
+plot(knn_model)
+```
+
+```{r}
+print(knn_model)
+```
+# Experimenting With Different Models
+```{r}
+# it is clear that the model performs best when k = 2
+# re-run the analysis with k = 2, set the tuneGrid in the train function specifically to k = 2, and then retrain the model
+
+set.seed(1)
+train_indices <- createDataPartition(y = clean_cars$price, 
+                                     p = 0.8, 
+                                     list = FALSE)
+train_clean_cars <- clean_cars[train_indices,]
+test_clean_cars <- clean_cars[-train_indices,]
+knn_grid <- expand.grid(k = 2)
+train_control <- trainControl(method = "cv", number = 5)
+knn_model <- train(price ~ horsepower + curb_weight + engine_size +
+                   bore + wheel_base + length + width + city_mpg + highway_mpg,
+               data = train_clean_cars,
+               method = "knn",
+               trControl = train_control,
+               tuneGrid = knn_grid,
+               preProcess = c("center", "scale"))
+```
+
+
+# Model Evaluations
+```{r}
+test_predictions <- predict(knn_model, newdata = test_clean_cars)
+
+postResample(pred = test_predictions, obs = test_clean_cars$price)
+
+```
+
+# Experiment with a model with all features 
+```{r}
+# let's train and test a model with all features  
+set.seed(1)
+train_indices <- createDataPartition(y = clean_cars$price, 
+                                     p = 0.8, 
+                                     list = FALSE)
+train_clean_cars <- clean_cars[train_indices,]
+test_clean_cars <- clean_cars[-train_indices,]
+knn_grid <- expand.grid(k = 2)
+train_control <- trainControl(method = "cv", number = 5)
+knn_model <- train(price ~ .,
+               data = train_clean_cars,
+               method = "knn",
+               trControl = train_control,
+               tuneGrid = knn_grid,
+               preProcess = c("center", "scale"))
+
+```
+
+# Model Evaluation
+```{r}
+test_predictions <- predict(knn_model, newdata = test_clean_cars)
+
+postResample(pred = test_predictions, obs = test_clean_cars$price)
+```
+# it seems that the second model with all features has a lower RMSE. The lower RMSE for the model with all variables (Model A) likely results from the inclusion of additional features that provide valuable information, even if they aren't strongly related to the dependent variable individually. These features might contribute to a more nuanced understanding of the data, reducing prediction errors. On the other hand, the model with selected features (Model B) might not capture the full complexity of the data, leading to a higher RMSE despite focusing on seemingly more relevant variables.
