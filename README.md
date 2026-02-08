@@ -1,11 +1,20 @@
 # R-data-analysis-projects
 
-Hello,
+Thank you for visiting my GitHub profile! This repository documents my R learning journey and showcases my interest in data science.
 
-Thank you for visiting my GitHub profile! 
-Here, I document my R learning process and show my interest in data science.
-I work on different portfolio of projects on visiualization, data clearning, sql, API, web scraping, predictive modeling, among others.
-I get the datasets of my projects from Kaggle, Dataquest, and other open data portals.
+I work on a variety of projects covering:
+
+Data cleaning and preprocessing
+
+Data visualization
+
+SQL queries
+
+API usage and web scraping
+
+Predictive modeling
+
+The datasets I use for these projects come from Kaggle, Dataquest, and other open data portals. This repository serves as both a portfolio of my work and a record of my learning progress in R and data science.
 
 Kind regards,
 Yassir
